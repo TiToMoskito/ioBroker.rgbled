@@ -1,0 +1,80 @@
+{
+	"common": {
+		"name": "rgbled",
+		"version": "0.0.1",
+		"news": {
+			"0.0.1": {
+				"en": "initial release",
+				"de": "Erstveröffentlichung",
+				"ru": "Начальная версия",
+				"pt": "lançamento inicial",
+				"nl": "Eerste uitgave",
+				"fr": "Première version",
+				"it": "Versione iniziale",
+				"es": "Versión inicial",
+				"pl": "Pierwsze wydanie",
+				"zh-cn": "首次出版"
+			}
+		},
+		"title": "RGBLed",
+		"titleLang": {
+			"en": "RGBLed",
+			"de": "RGBLed",
+			"ru": "RGBLed",
+			"pt": "RGBLed",
+			"nl": "RGBLed",
+			"fr": "RGBLed",
+			"it": "RGBLED",
+			"es": "RGBLed",
+			"pl": "RGBLed",
+			"zh-cn": "RGBLed"
+		},
+		"desc": {
+			"en": "Control WS28xx Strips",
+			"de": "Steuern Sie die WS28xx-Streifen",
+			"ru": "Контрольные полоски WS28xx",
+			"pt": "Controlar tiras WS28xx",
+			"nl": "Controle WS28xx Strips",
+			"fr": "Contrôle des bandes WS28xx",
+			"it": "Controlla le strisce WS28xx",
+			"es": "Control WS28xx Tiras",
+			"pl": "Kontroluj paski WS28xx",
+			"zh-cn": "控制WS28xx条"
+		},
+		"authors": [
+			"TiToMoskito <dennis@rumstein.eu>"
+		],
+		"keywords": [
+			"ws28xx",
+			"rgb",
+			"rgb strip",
+			"led strip",
+			"led"
+		],
+		"license": "MIT",
+		"platform": "Javascript/Node.js",
+		"main": "main.js",
+		"icon": "rgbled.png",
+		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/TiToMoskito/ioBroker.rgbled/master/admin/rgbled.png",
+		"readme": "https://github.com/TiToMoskito/ioBroker.rgbled/blob/master/README.md",
+		"loglevel": "info",
+		"mode": "daemon",
+		"type": "lighting",
+		"compact": true,
+		"connectionType": "local",
+		"dataSource": "push",
+		"materialize": true,
+		"dependencies": [
+			{
+				"js-controller": ">=1.4.2"
+			}
+		]
+	},
+	"native": {
+		"option1": true,
+		"option2": "42"
+	},
+	"objects": [],
+	"instanceObjects": []
+}
