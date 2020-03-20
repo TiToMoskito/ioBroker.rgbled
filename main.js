@@ -36,20 +36,20 @@ class Rgbled extends utils.Adapter {
 
 		// The adapters config (in the instance object everything under the attribute "native") is accessible via
 		// this.config:
-		this.log.info("config option1: " + this.config.option1);
-		this.log.info("config option2: " + this.config.option2);
+		this.log.info("config ipaddress: " + this.config.ipaddress);
+		this.log.info("config port: " + this.config.port);
 
 		/*
 		For every state in the system there has to be also an object of type state
 		Here a simple template for a boolean variable named "testVariable"
 		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
 		*/
-		await this.setObjectAsync("testVariable", {
+		await this.setObjectAsync("rainbowEffect", {
 			type: "state",
 			common: {
-				name: "testVariable",
+				name: "rainbowEffect",
 				type: "boolean",
-				role: "indicator",
+				role: "state",
 				read: true,
 				write: true,
 			},
@@ -64,14 +64,14 @@ class Rgbled extends utils.Adapter {
 		you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
 		*/
 		// the variable testVariable is set to true as command (ack=false)
-		await this.setStateAsync("testVariable", true);
+		await this.setStateAsync("rainbowEffect", true);
 
 		// same thing, but the value is flagged "ack"
 		// ack should be always set to true if the value is received from or acknowledged from the target system
-		await this.setStateAsync("testVariable", { val: true, ack: true });
+		await this.setStateAsync("rainbowEffect", { val: true, ack: true });
 
 		// same thing, but the state is deleted after 30s (getState will return null afterwards)
-		await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
+		await this.setStateAsync("rainbowEffect", { val: true, ack: true, expire: 30 });
 
 		// examples for the checkPassword/checkGroup functions
 		let result = await this.checkPasswordAsync("admin", "iobroker");
