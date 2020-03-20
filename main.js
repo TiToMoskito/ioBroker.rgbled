@@ -1,156 +1,182 @@
 "use strict";
+const adapterName 		= require('./package.json').name.split('.').pop();
+const utils 			= require("@iobroker/adapter-core");
 
-/*
- * Created with @iobroker/create-adapter v1.23.0
- */
+const WebSocketClient 	= require('websocket').client;
 
-// The adapter-core module gives you access to the core ioBroker functions
-// you need to create an adapter
-const utils = require("@iobroker/adapter-core");
 
-// Load your modules here, e.g.:
-// const fs = require("fs");
+let client;
+let conn;
+let adapter;
+function startAdapter(options) {
+    options = options || {};
+    options.name = adapterName;
 
-class Rgbled extends utils.Adapter {
+	adapter  = new utils.Adapter(options);
 
-	/**
-	 * @param {Partial<ioBroker.AdapterOptions>} [options={}]
-	 */
-	constructor(options) {
-		super({
-			...options,
-			name: "rgbled",
+	adapter.on('stateChange', (_id, state) => {
+        if (!state || state.ack) return;
+        adapter.log.info('try to control id ' + _id + ' with ' + JSON.stringify(state));
+        // Try to find the object
+		const id = adapter.idToDCS(_id);
+
+		if (id)
+		{
+			if (id.state === 'rainbow') {
+				if (!!state.val) {
+					conn.sendUTF("1");
+				}
+			} else
+			if (id.state === 'colorWipe') {
+				if (!!state.val) {
+					conn.sendUTF("0"+ " " + adapter.getState('r').val + " " + adapter.getState('g').val +" "+ adapter.getState('b').val);
+				}
+			} 			
+		}
+	});
+	
+	adapter.on('install', () => adapter.createDevice('root', {}));
+
+	adapter.on('unload', callback => {
+        try {
+            if (adapter) {
+                adapter.log && adapter.log.info && adapter.log.info('terminating');
+            }
+            callback();
+        } catch (e) {
+            callback();
+        }
+    });
+
+    adapter.on('ready', () => {
+        adapter.getObject(adapter.namespace + '.root', (err, obj) => {
+            if (!obj || !obj.common || !obj.common.name) {
+                adapter.createDevice('root', {}, () => main());
+            } else {
+                main ();
+            }
+        });
+	});
+	
+	return adapter;
+}
+
+function createStates() 
+{
+	const states = {
+		'online': {
+			def:    false,
+			type:   'boolean',
+			read:   true,
+			write:  true,
+			role:   'state',
+			min:    false,
+			max:    true,
+			name:	'Connection Status',
+			desc:   'Is the connection established'
+		},
+		'bri': {
+			def:   '100',
+			type:  'number',
+			read:  false,
+			write: true,
+			role:  'state',
+			name:	'Brightness',
+			desc:  '0..100%'
+		},
+		'red': {
+			def:   '0',
+			type:  'number',
+			read:  false,
+			write: true,
+			role:  'state',
+			name:	'Red',
+			desc:  '0..255'
+		},
+		'green': { 
+			def:   '0',
+			type:  'number',
+			read:  false,
+			write: true,
+			role:  'state',
+			name:	'Green',
+			desc:  '0..255'
+		},
+		'blue': {
+			def:   '0',
+			type:  'number',
+			read:  false,
+			write: true,
+			role:  'state',
+			name:	'Blue',
+			desc:  '0..255'
+		},
+		'rainbow': {
+			def:    false,
+			type:   'boolean',
+			read:   true,
+			write:  true,
+			role:   'state',
+			min:    false,
+			max:    true,
+			name:	'Rainbow effect',
+			desc:   'Rainbow effect on/off'
+		},
+		'wipeColor': {    
+			def:    false,
+			type:   'boolean',
+			read:   true,
+			write:  true,
+			role:   'state',
+			min:    false,
+			max:    true,
+			name:	'Color wipe',
+			desc:   'Change color effect on/off'
+		}    
+	};
+
+	const states_list = [];
+    for (const state in states) {
+        states_list.push(state);
+	}
+	
+	for (let j = 0; j < states_list.length; j++) {
+        adapter.createState('root', 0, states_list[j], states[states_list[j]]);
+    }
+}
+
+function main() 
+{
+	adapter.subscribeStates('*');
+	createStates();
+
+	client = new WebSocketClient();
+	client.connect('ws://'+adapter.config.ipaddress+':'+adapter.config.port+'/', 'echo-protocol');
+
+	client.on('connectFailed', function(error) {
+		console.log('Connect Error: ' + error.toString());
+		adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
+	});
+	
+	client.on('connect', function(connection) {
+		conn = connection;
+		adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: true, ack: true});
+
+		connection.on('error', function(error) {
+			console.log("Connection Error: " + error.toString());
+			adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
 		});
-		this.on("ready", this.onReady.bind(this));
-		this.on("objectChange", this.onObjectChange.bind(this));
-		this.on("stateChange", this.onStateChange.bind(this));
-		// this.on("message", this.onMessage.bind(this));
-		this.on("unload", this.onUnload.bind(this));
-	}
-
-	/**
-	 * Is called when databases are connected and adapter received configuration.
-	 */
-	async onReady() {
-		// Initialize your adapter here
-
-		// The adapters config (in the instance object everything under the attribute "native") is accessible via
-		// this.config:
-		this.log.info("config ipaddress: " + this.config.ipaddress);
-		this.log.info("config port: " + this.config.port);
-
-		/*
-		For every state in the system there has to be also an object of type state
-		Here a simple template for a boolean variable named "testVariable"
-		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
-		*/
-		await this.setObjectAsync("rainbowEffect", {
-			type: "state",
-			common: {
-				name: "rainbowEffect",
-				type: "boolean",
-				role: "state",
-				read: true,
-				write: true,
-			},
-			native: {},
+		connection.on('close', function() {
+			console.log('echo-protocol Connection Closed');
+			adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
 		});
-
-		// in this template all states changes inside the adapters namespace are subscribed
-		this.subscribeStates("*");
-
-		/*
-		setState examples
-		you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
-		*/
-		// the variable testVariable is set to true as command (ack=false)
-		await this.setStateAsync("rainbowEffect", true);
-
-		// same thing, but the value is flagged "ack"
-		// ack should be always set to true if the value is received from or acknowledged from the target system
-		await this.setStateAsync("rainbowEffect", { val: true, ack: true });
-
-		// same thing, but the state is deleted after 30s (getState will return null afterwards)
-		await this.setStateAsync("rainbowEffect", { val: true, ack: true, expire: 30 });
-
-		// examples for the checkPassword/checkGroup functions
-		let result = await this.checkPasswordAsync("admin", "iobroker");
-		this.log.info("check user admin pw iobroker: " + result);
-
-		result = await this.checkGroupAsync("admin", "admin");
-		this.log.info("check group user admin group admin: " + result);
-	}
-
-	/**
-	 * Is called when adapter shuts down - callback has to be called under any circumstances!
-	 * @param {() => void} callback
-	 */
-	onUnload(callback) {
-		try {
-			this.log.info("cleaned everything up...");
-			callback();
-		} catch (e) {
-			callback();
-		}
-	}
-
-	/**
-	 * Is called if a subscribed object changes
-	 * @param {string} id
-	 * @param {ioBroker.Object | null | undefined} obj
-	 */
-	onObjectChange(id, obj) {
-		if (obj) {
-			// The object was changed
-			this.log.info(`object ${id} changed: ${JSON.stringify(obj)}`);
-		} else {
-			// The object was deleted
-			this.log.info(`object ${id} deleted`);
-		}
-	}
-
-	/**
-	 * Is called if a subscribed state changes
-	 * @param {string} id
-	 * @param {ioBroker.State | null | undefined} state
-	 */
-	onStateChange(id, state) {
-		if (state) {
-			// The state was changed
-			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-		} else {
-			// The state was deleted
-			this.log.info(`state ${id} deleted`);
-		}
-	}
-
-	// /**
-	//  * Some message was sent to this instance over message box. Used by email, pushover, text2speech, ...
-	//  * Using this method requires "common.message" property to be set to true in io-package.json
-	//  * @param {ioBroker.Message} obj
-	//  */
-	// onMessage(obj) {
-	// 	if (typeof obj === "object" && obj.message) {
-	// 		if (obj.command === "send") {
-	// 			// e.g. send email or pushover or whatever
-	// 			this.log.info("send command");
-
-	// 			// Send response in callback if required
-	// 			if (obj.callback) this.sendTo(obj.from, obj.command, "Message received", obj.callback);
-	// 		}
-	// 	}
-	// }
-
+	});
 }
 
 // @ts-ignore parent is a valid property on module
 if (module.parent) {
-	// Export the constructor in compact mode
-	/**
-	 * @param {Partial<ioBroker.AdapterOptions>} [options={}]
-	 */
-	module.exports = (options) => new Rgbled(options);
+	module.exports = startAdapter;
 } else {
 	// otherwise start the instance directly
-	new Rgbled();
+	startAdapter();
 }
