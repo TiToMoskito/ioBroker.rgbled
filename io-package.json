@@ -73,7 +73,8 @@
 	},
 	"native": {
 		"ipaddress": "127.0.0.1",
-		"port": "4649"
+		"port": "4649",
+		"reconnect": true
 	},
 	"objects": [],
 	"instanceObjects": []
