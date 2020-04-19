@@ -11,6 +11,8 @@ let red					= 0;
 let green				= 0;
 let blue				= 0;
 
+let reconnectTimer;
+
 let adapter;
 function startAdapter(options) {
     options = options || {};
@@ -209,6 +211,7 @@ function disconnect()
 	connected = false;
 	adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
 	adapter.log.info("Disconnected");
+	clearInterval(reconnectTimer);
 }
 
 function onConnected()
@@ -216,13 +219,15 @@ function onConnected()
 	adapter.log.info('Connection established');
 	adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: true, ack: true});
 	connected = true;
+	clearInterval(reconnectTimer);
 }
 
 function onConnectFailed(error)
 {
-	adapter.log.info('Connect Error: ' + error);
+	adapter.log.info('Connect Error: ' + JSON.stringify(error));
 	adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
-	connected = false;
+	connected = false;	
+	reconnectTimer = setInterval(connect, 10000);
 }
 
 function onClose(code, reason)
@@ -230,18 +235,16 @@ function onClose(code, reason)
 	adapter.log.info("Connection closed("+code+"): " + reason);
 	adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
 	connected = false;
+	reconnectTimer = setInterval(connect, 10000);
 }
 
 function onError(error)
 {
-	adapter.log.info("Connection Error: " + error.toString());
+	adapter.log.info("Connection Error: " + JSON.stringify(error));
 	adapter.setState({device: 'root', channel: 0, state: 'online'}, {val: false, ack: true});
 	connected = false;
+	reconnectTimer = setInterval(connect, 10000);
 }
-
-
-/* if(recon && adapter.config.reconnect)
-	connect(); */
 
 // @ts-ignore parent is a valid property on module
 if (module.parent) {

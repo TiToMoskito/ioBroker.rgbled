@@ -1,6 +1,6 @@
 {
   "name": "iobroker.rgbled",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Control WS28xx Strips",
   "author": {
     "name": "TiToMoskito",
